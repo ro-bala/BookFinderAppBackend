@@ -1,4 +1,5 @@
-const { MongoClient } = require("mongodb"); // Import MongoClient from mongodb package
+// config/db.js
+const { MongoClient } = require("mongodb");
 const dotenv = require("dotenv");
 
 dotenv.config(); // Load environment variables
@@ -9,7 +10,7 @@ let client;
 
 const connectDB = async () => {
   try {
-    client = await MongoClient.connect(MONGO_URI); // Remove deprecated options here
+    client = await MongoClient.connect(MONGO_URI); 
     console.log("Connected to MongoDB");
   } catch (err) {
     console.error("Error connecting to MongoDB:", err);
@@ -17,4 +18,12 @@ const connectDB = async () => {
   }
 };
 
-module.exports = connectDB;
+// Export the client and a function to get the database
+const getDb = () => {
+  if (!client) {
+    throw new Error("Database connection is not established yet");
+  }
+  return client.db("BookFinderAppBackend"); // Returns the default database
+};
+
+module.exports = { connectDB, getDb };
