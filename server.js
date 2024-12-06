@@ -3,8 +3,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 
-dotenv.config();
-connectDB();
+dotenv.config();  // Ensure this loads the .env file
+connectDB();  // Connect to the database
 
 const app = express();
 app.use(cors());
