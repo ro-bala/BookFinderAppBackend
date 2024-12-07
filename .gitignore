@@ -1,0 +1,25 @@
+# Node.js dependencies
+/node_modules/
+
+# Logs
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Environment variables (you should not commit sensitive data like API keys)
+.env
+
+# Build directories
+/dist/
+build/
+
+# IDE and editor settings
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Other files you might not want to commit
+*.log
