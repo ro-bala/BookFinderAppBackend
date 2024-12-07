@@ -1,3 +1,4 @@
+// routes/authRoutes.js
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -62,8 +63,7 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials." });
     }
 
-    console.log(process.env.JWT_SECRET);  // Check if this prints the correct secret
-
+    // Create a JWT token
     const token = jwt.sign(
       { id: user._id, email: user.email },
       process.env.JWT_SECRET,
