@@ -17,7 +17,7 @@ const connectDB = async () => {
         useNewUrlParser: true,  // Ensure the new URL parser is used
         useUnifiedTopology: true,  // Ensure the unified topology engine is used
         ssl: true,  // Ensure SSL is enabled
-        sslValidate: true,  // Validate the SSL certificate
+        
         tlsAllowInvalidCertificates: false,  // Disable invalid certificate allowance
       };
 
