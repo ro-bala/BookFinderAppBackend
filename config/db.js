@@ -1,29 +1,46 @@
-// config/db.js
 const { MongoClient } = require("mongodb");
 const dotenv = require("dotenv");
 
 dotenv.config(); // Load environment variables
 
-const MONGO_URI = process.env.MONGO_URI; // Get MongoDB URI from environment variable
+const MONGO_URI = process.env.MONGO_URI; // MongoDB URI
+const DB_NAME = "BookFinderAppBackend"; // Default database name
 
 let client;
+let dbConnection;
 
+// Function to connect to MongoDB
 const connectDB = async () => {
   try {
-    client = await MongoClient.connect(MONGO_URI); 
-    console.log("Connected to MongoDB");
+    if (!client) {
+      client = new MongoClient(MONGO_URI);
+      await client.connect();
+      dbConnection = client.db(DB_NAME);
+      console.log("Connected to MongoDB");
+    }
+    return dbConnection;
   } catch (err) {
-    console.error("Error connecting to MongoDB:", err);
-    process.exit(1); // Exit if there's an error connecting to MongoDB
+    console.error("Error connecting to MongoDB:", err.message);
+    process.exit(1); // Exit the process if the connection fails
   }
 };
 
-// Export the client and a function to get the database
+// Function to get the database connection
 const getDb = () => {
-  if (!client) {
-    throw new Error("Database connection is not established yet");
+  if (!dbConnection) {
+    throw new Error("Database connection is not established yet. Call connectDB first.");
   }
-  return client.db("BookFinderAppBackend"); // Returns the default database
+  return dbConnection;
 };
 
-module.exports = { connectDB, getDb };
+// Close the connection when needed
+const closeDB = async () => {
+  if (client) {
+    await client.close();
+    client = null;
+    dbConnection = null;
+    console.log("MongoDB connection closed.");
+  }
+};
+
+module.exports = { connectDB, getDb, closeDB };
