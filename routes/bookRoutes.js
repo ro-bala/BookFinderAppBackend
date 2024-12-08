@@ -105,7 +105,6 @@ const fetchBookDetailsFromOpenLibrary = async (key) => {
   }
 };
 
-// Delete Book from User's Collection (DELETE)
 // Delete Book from Collection (DELETE)
 router.delete('/collections/delete', verifyToken, async (req, res) => {
   const { key } = req.body; // The key of the book to delete (from Open Library)
