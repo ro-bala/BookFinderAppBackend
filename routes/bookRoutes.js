@@ -2,7 +2,7 @@ const express = require('express');
 const { getDb } = require('../config/db');
 const { verifyToken } = require('../middleware/authMiddleware');
 const { ObjectId } = require('mongodb');
-const axios = require('axios'); // Import axios to fetch data from Open Library
+const axios = require('axios');
 
 const router = express.Router();
 
@@ -10,14 +10,11 @@ const router = express.Router();
 const fetchOpenLibraryKey = async (bookTitle, author) => {
   try {
     const response = await axios.get(`https://openlibrary.org/search.json`, {
-      params: {
-        title: bookTitle,
-        author: author,
-      },
+      params: { title: bookTitle, author: author },
     });
 
     if (response.data.docs.length > 0) {
-      return response.data.docs[0].key; // Return the key of the first matched book
+      return response.data.docs[0].key;
     }
 
     return null;
@@ -30,7 +27,7 @@ const fetchOpenLibraryKey = async (bookTitle, author) => {
 // Save Book to User's Collection (POST)
 router.post('/collections/save', verifyToken, async (req, res) => {
   const { book } = req.body;
-  const userId = req.user.id;  // Assuming JWT token gives us user ID
+  const userId = req.user.id;
 
   try {
     const users = await getDb().collection('Users');
@@ -40,11 +37,24 @@ router.post('/collections/save', verifyToken, async (req, res) => {
       return res.status(404).json({ message: 'User not found.' });
     }
 
+    // Ensure user.collection exists
+    if (!user.collection) {
+      user.collection = [];
+    }
+
+    // Check if the book already exists in the user's collection
+    const existingBook = user.collection.find((b) => b.key === book.key);
+    if (existingBook) {
+      return res.status(400).json({ message: 'Book already exists in your collection.' });
+    }
+
     // Fetch the Open Library key if not already provided
     if (!book.key) {
       const key = await fetchOpenLibraryKey(book.title, book.author);
       if (key) {
-        book.key = key; // Assign the Open Library key if available
+        book.key = key;
+      } else {
+        return res.status(404).json({ message: 'Book key not found. Cannot save book.' });
       }
     }
 
@@ -73,14 +83,20 @@ router.get('/collections', verifyToken, async (req, res) => {
       return res.status(404).json({ message: 'User not found.' });
     }
 
+    // Handle empty collection case
+    const userCollection = user.collection || [];
+    if (userCollection.length === 0) {
+      return res.status(200).json({ books: [], message: 'Your collection is empty.' });
+    }
+
     // Fetch more details for each book using Open Library key
     const booksWithDetails = await Promise.all(
-      user.collection.map(async (book) => {
+      userCollection.map(async (book) => {
         if (book.key) {
           const bookDetails = await fetchBookDetailsFromOpenLibrary(book.key);
-          return { ...book, ...bookDetails }; // Combine book data with fetched details
+          return { ...book, ...bookDetails };
         }
-        return book; // Return book as is if no Open Library key
+        return book;
       })
     );
 
@@ -96,18 +112,20 @@ const fetchBookDetailsFromOpenLibrary = async (key) => {
   try {
     const response = await axios.get(`https://openlibrary.org${key}.json`);
     return {
-      cover: response.data.covers ? `https://covers.openlibrary.org/b/id/${response.data.covers[0]}-L.jpg` : null, // Get cover image
+      cover: response.data.covers
+        ? `https://covers.openlibrary.org/b/id/${response.data.covers[0]}-L.jpg`
+        : null,
       description: response.data.description || 'No description available.',
     };
   } catch (error) {
     console.error('Error fetching book details from Open Library:', error);
-    return {}; // Return an empty object if the details fetch fails
+    return {};
   }
 };
 
 // Delete Book from Collection (DELETE)
 router.delete('/collections/delete', verifyToken, async (req, res) => {
-  const { key } = req.body; // The key of the book to delete (from Open Library)
+  const { key } = req.body;
   const userId = req.user.id;
 
   try {
@@ -118,17 +136,22 @@ router.delete('/collections/delete', verifyToken, async (req, res) => {
       return res.status(404).json({ message: 'User not found.' });
     }
 
-    // Check if the book exists in the user's collection
-    const bookIndex = user.collection.findIndex(book => book.key === key);
+    // Ensure the collection exists
+    if (!user.collection || user.collection.length === 0) {
+      return res.status(404).json({ message: 'Your collection is empty.' });
+    }
 
-    if (bookIndex === -1) {
+    // Check if the book exists in the user's collection
+    const bookExists = user.collection.some((book) => book.key === key);
+
+    if (!bookExists) {
       return res.status(404).json({ message: 'Book not found in your collection.' });
     }
 
     // Remove the book from the user's collection
     await users.updateOne(
       { _id: new ObjectId(userId) },
-      { $pull: { collection: { key } } } // Use the key to identify and remove the book
+      { $pull: { collection: { key } } }
     );
 
     res.status(200).json({ message: 'Book removed from your collection.' });
@@ -137,6 +160,5 @@ router.delete('/collections/delete', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Internal server error.' });
   }
 });
-
 
 module.exports = router;
