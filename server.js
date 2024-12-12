@@ -18,7 +18,8 @@ const startServer = async () => {
     // Set up your routes
     app.use("/api/auth", require("./routes/authRoutes"));
     app.use("/api/books", require("./routes/bookRoutes"));
-
+    app.use("/api/user", require("./routes/userRoutes")); // New user routes
+    
     // Start the server
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
